@@ -18,6 +18,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/threadgill/media.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/threadgill/control.js",
       "use": "@vercel/node"
     }
@@ -30,6 +34,10 @@
     {
       "src": "/api/threadgill/frigate",
       "dest": "/api/threadgill/frigate.js"
+    },
+    {
+      "src": "/api/threadgill/media",
+      "dest": "/api/threadgill/media.js"
     },
     {
       "src": "/threadgill/?",

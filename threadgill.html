@@ -1099,6 +1099,7 @@
     const SUPABASE_BUCKET = "spypoint-images";
     const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const FRIGATE_PROXY = "/api/threadgill/frigate";
+    const MEDIA_PROXY = "/api/threadgill/media";
     const CONTROL_PROXY = "/api/threadgill/control";
     const THUMB_CACHE_NAME = "threadgill-home-thumbs-v1";
     const THUMB_REFRESH_MS = 15000;
@@ -1250,6 +1251,12 @@
         if (value !== undefined && value !== null) query.set(key, String(value));
       }
       return `${FRIGATE_PROXY}?${query.toString()}`;
+    }
+
+    function mediaUrl(path) {
+      if (!path) return "";
+      const normalized = path.startsWith("/threadgill-media/") ? path : `/threadgill-media/${path.replace(/^\/+/, "")}`;
+      return `${MEDIA_PROXY}?path=${encodeURIComponent(normalized)}`;
     }
 
     function imageSrc(camera, detail = false) {
@@ -1447,12 +1454,12 @@
       clipVideo.setAttribute("webkit-playsinline", "");
     }
 
-    async function startClipPlayback() {
+    async function startClipPlayback(sourceLabel = "live Threadgill Frigate bridge") {
       if (!clipVideo || !clipVideo.getAttribute("src")) return;
       try {
         await clipVideo.play();
         clipAutoplayPending = false;
-        setClipPlayerMessage("Playing from the live Threadgill Frigate bridge.");
+        setClipPlayerMessage(sourceLabel === "prepared mobile playback" ? "Playing prepared mobile playback." : `Playing from the ${sourceLabel}.`);
       } catch {
         setClipPlayerMessage("Tap Play to start this clip. Mobile browsers can block automatic clip playback.");
       } finally {
@@ -1460,31 +1467,25 @@
       }
     }
 
-    async function loadClipSource(url, token) {
-      setClipPlayerMessage("Loading clip from the live Frigate bridge...");
-      try {
-        const response = await fetch(url, { cache: "no-store" });
-        if (!response.ok) throw new Error(`clip ${response.status}`);
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.toLowerCase().includes("video")) throw new Error("not video");
-        const blob = await response.blob();
+    function loadClipSource(url, token, sourceLabel = "live Threadgill Frigate bridge") {
+      setClipPlayerMessage(`Loading clip from the ${sourceLabel}...`);
+      clipVideo.onloadedmetadata = async () => {
         if (token !== clipLoadToken) return;
-        clearClipBlobUrl();
-        clipBlobUrl = URL.createObjectURL(blob);
-        clipVideo.src = clipBlobUrl;
-        clipVideo.load();
         clipFallback.hidden = true;
         clipVideo.hidden = false;
         setClipPlayerMessage("Clip loaded. Tap Play if it does not start automatically.");
-        await startClipPlayback();
-      } catch {
+        await startClipPlayback(sourceLabel);
+      };
+      clipVideo.onerror = () => {
         if (token !== clipLoadToken) return;
         clipAutoplayPending = false;
         clipVideo.hidden = true;
         clipFallback.hidden = false;
         setClipPlayerMessage("This clip could not be loaded from the current Threadgill bridge.");
         syncClipControls();
-      }
+      };
+      clipVideo.src = url;
+      clipVideo.load();
     }
 
     function getDetailZoomImage() {
@@ -1681,6 +1682,47 @@
       return `${Math.round(duration)}s`;
     }
 
+    function preparedClipMeta(camera, clip) {
+      const start = Number(clip.startTime || 0);
+      const duration = Number(clip.duration || Math.max(0, Number(clip.endTime || 0) - start));
+      const durationText = Number.isFinite(duration) && duration > 0 ? `${Math.round(duration)}s` : "Clip";
+      return `${camera.name} · ${formatTrailTime(start * 1000)} · ${durationText}`;
+    }
+
+    function preparedClipRecord(camera, clip) {
+      const start = Math.floor(Number(clip.startTime || 0));
+      const end = Math.ceil(Number(clip.endTime || 0));
+      if (!start || !end || end <= start) return null;
+      return {
+        title: clip.title || clip.label || "Motion recording",
+        meta: preparedClipMeta(camera, clip),
+        thumb: mediaUrl(clip.thumbPath),
+        url: clip.proxyPath ? mediaUrl(clip.proxyPath) : "",
+        prepared: true,
+        recording: true,
+        cameraName: camera.frigateCamera,
+        recordingStart: start,
+        recordingEnd: end,
+        sortTime: start
+      };
+    }
+
+    async function loadPreparedIndex(path = "/threadgill-media/index.json") {
+      const res = await fetch(mediaUrl(path), { cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return Array.isArray(data?.clips) ? data : null;
+    }
+
+    function preparedClipsForCamera(index, camera) {
+      if (!index?.clips?.length) return [];
+      return index.clips
+        .filter((clip) => clip.camera === camera.frigateCamera)
+        .map((clip) => preparedClipRecord(camera, clip))
+        .filter(Boolean)
+        .sort((a, b) => Number(b.sortTime || 0) - Number(a.sortTime || 0));
+    }
+
     function dateInputValue(date = new Date()) {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1734,7 +1776,7 @@
           const end = Math.ceil(Number(recording.end_time));
           const duration = Number(recording.duration || (end - start));
           return {
-            title: `${sourceLabel} - ${recordingActivityText(recording)}`,
+            title: recordingActivityText(recording),
             meta: `${camera.name} · ${formatTrailTime(start * 1000)} · ${recordingDurationText(recording)}`,
             recording: true,
             cameraName: camera.frigateCamera,
@@ -1776,7 +1818,7 @@
       const state = clipState(camera);
       state.mode = "recent";
       state.loading = true;
-      state.status = "Loading last 24 hours...";
+      state.status = "Loading prepared clip feed...";
       if (selected?.id === camera.id) openDetail(camera.id);
 
       const nowSeconds = Math.floor(Date.now() / 1000);
@@ -1799,6 +1841,17 @@
       state.status = `Searching ${range.date}...`;
       if (selected?.id === camera.id) openDetail(camera.id);
 
+      const prepared = await loadPreparedIndex(`/threadgill-media/archive/${range.date}.json`).catch(() => null);
+      const preparedClips = preparedClipsForCamera(prepared, camera);
+      if (preparedClips.length) {
+        clipFeeds[camera.id] = preparedClips;
+        state.loading = false;
+        state.loadedAt = Date.now();
+        state.status = `${preparedClips.length} prepared clips for ${range.date}`;
+        if (selected?.id === camera.id) openDetail(camera.id);
+        return;
+      }
+
       const recordings = await loadRecordingClips(camera, range.after, range.before, "Archive");
       clipFeeds[camera.id] = mergeClipLists(recordings);
       state.loading = false;
@@ -1809,6 +1862,21 @@
 
     async function loadLiveClips() {
       let events = [];
+      const prepared = await loadPreparedIndex().catch(() => null);
+      if (prepared?.clips?.length) {
+        for (const camera of cameras.filter((item) => item.kind === "house" && item.frigateCamera)) {
+          const state = clipState(camera);
+          const clips = preparedClipsForCamera(prepared, camera);
+          clipFeeds[camera.id] = clips;
+          state.mode = "recent";
+          state.loading = false;
+          state.loadedAt = Date.now();
+          state.status = `${clips.length} prepared clips from last 24 hours`;
+        }
+        if (selected?.kind === "house") openDetail(selected.id);
+        return;
+      }
+
       const res = await fetch(frigateUrl("/api/events", { limit: FRIGATE_EVENT_LIMIT }), { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
@@ -2294,6 +2362,8 @@
       const token = ++clipLoadToken;
       clipVideo.pause();
       clipVideo.removeAttribute("src");
+      clipVideo.onloadedmetadata = null;
+      clipVideo.onerror = null;
       clearClipBlobUrl();
       clipVideo.className = rotationClass(selected);
       clipVideo.poster = clipThumb(clip);
@@ -2307,10 +2377,10 @@
       clipPlayerInfo.innerHTML = `
         <span>${selected.name}</span>
         <strong>${clip.title}</strong>
-        <p>${url ? "Loading clip from the live Frigate bridge..." : "No retained clip URL is available for this card yet."}</p>
+        <p>${url ? (clip.prepared ? "Loading prepared mobile playback..." : "Loading clip from the live Frigate bridge...") : "No retained clip URL is available for this card yet."}</p>
       `;
       if (url) {
-        loadClipSource(url, token);
+        loadClipSource(url, token, clip.prepared ? "prepared mobile playback" : "live Threadgill Frigate bridge");
       }
       syncClipControls();
       clipPlayerScreen.setAttribute("aria-hidden", "false");
@@ -2322,6 +2392,8 @@
       clipAutoplayPending = false;
       clipVideo.removeAttribute("src");
       clipVideo.removeAttribute("class");
+      clipVideo.onloadedmetadata = null;
+      clipVideo.onerror = null;
       clearClipBlobUrl();
       clipVideo.load();
       resetClipControls();
