@@ -1198,6 +1198,7 @@
     ];
 
     const RECENT_CLIP_HOURS = 24;
+    const ARCHIVE_FALLBACK_DAYS = 14;
     const FRIGATE_EVENT_LIMIT = 500;
     const CLIP_RENDER_INITIAL = 80;
     const CLIP_RENDER_STEP = 80;
@@ -1774,6 +1775,24 @@
         .sort((a, b) => Number(b.sortTime || 0) - Number(a.sortTime || 0));
     }
 
+    function setPreparedClipFeeds(index, { mode = "recent", archiveDate = "", statusText } = {}) {
+      applyPreparedFallbacks(index);
+      for (const camera of cameras.filter((item) => item.kind === "house" && item.frigateCamera)) {
+        const state = clipState(camera);
+        const clips = preparedClipsForCamera(index, camera);
+        clipFeeds[camera.id] = clips;
+        state.mode = mode;
+        state.loading = false;
+        state.loadedAt = Date.now();
+        state.visibleLimit = CLIP_RENDER_INITIAL;
+        if (archiveDate) state.archiveDate = archiveDate;
+        state.status = typeof statusText === "function"
+          ? statusText(clips, camera)
+          : `${clips.length} prepared clips from last 24 hours`;
+      }
+      if (selected?.kind === "house") openDetail(selected.id);
+    }
+
     function applyPreparedFallbacks(index) {
       if (!index?.clips?.length) return;
       for (const camera of cameras.filter((item) => item.kind === "house" && item.frigateCamera)) {
@@ -1793,6 +1812,24 @@
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
+    }
+
+    function recentArchiveDates(days = ARCHIVE_FALLBACK_DAYS) {
+      const dates = [];
+      const cursor = new Date();
+      for (let i = 0; i < days; i += 1) {
+        dates.push(dateInputValue(cursor));
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      return dates;
+    }
+
+    async function loadLatestPreparedArchive() {
+      for (const date of recentArchiveDates()) {
+        const prepared = await loadPreparedIndex(`/threadgill-media/archive/${date}.json`).catch(() => null);
+        if (prepared?.clips?.length) return { date, prepared };
+      }
+      return null;
     }
 
     function archiveRangeForDate(value) {
@@ -1933,30 +1970,41 @@
       let events = [];
       const prepared = await loadPreparedIndex().catch(() => null);
       if (prepared?.clips?.length) {
-        applyPreparedFallbacks(prepared);
-        for (const camera of cameras.filter((item) => item.kind === "house" && item.frigateCamera)) {
-          const state = clipState(camera);
-          const clips = preparedClipsForCamera(prepared, camera);
-          clipFeeds[camera.id] = clips;
-          state.mode = "recent";
-          state.loading = false;
-          state.loadedAt = Date.now();
-          state.visibleLimit = CLIP_RENDER_INITIAL;
-          state.status = `${clips.length} prepared clips from last 24 hours`;
-        }
-        if (selected?.kind === "house") openDetail(selected.id);
+        setPreparedClipFeeds(prepared);
         return;
       }
 
-      const res = await fetch(frigateUrl("/api/events", { limit: FRIGATE_EVENT_LIMIT }), { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) events = data;
+      let liveBridgeAvailable = false;
+      try {
+        const res = await fetch(frigateUrl("/api/events", { limit: FRIGATE_EVENT_LIMIT }), { cache: "no-store" });
+        if (res.ok) {
+          liveBridgeAvailable = true;
+          const data = await res.json();
+          if (Array.isArray(data)) events = data;
+        }
+      } catch {
+        liveBridgeAvailable = false;
       }
 
       await Promise.all(cameras.filter((item) => item.kind === "house" && item.frigateCamera).map(async (camera) => {
         await loadRecentClipsForCamera(camera, events);
       }));
+      const liveClipCount = cameras
+        .filter((item) => item.kind === "house" && item.frigateCamera)
+        .reduce((sum, camera) => sum + (clipFeeds[camera.id]?.length || 0), 0);
+      if (!liveClipCount) {
+        const archive = await loadLatestPreparedArchive();
+        if (archive?.prepared?.clips?.length) {
+          setPreparedClipFeeds(archive.prepared, {
+            mode: "archive",
+            archiveDate: archive.date,
+            statusText: (clips) => liveBridgeAvailable
+              ? `No last 24h clips; showing ${clips.length} archived clips from ${archive.date}`
+              : `Live bridge offline; showing ${clips.length} archived clips from ${archive.date}`
+          });
+          return;
+        }
+      }
       if (selected?.kind === "house") openDetail(selected.id);
     }
 
