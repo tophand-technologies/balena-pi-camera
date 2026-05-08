@@ -134,7 +134,7 @@ objects:
       min_score: 0.75
 
 birdseye:
-  enabled: true
+  enabled: false
   mode: objects
 
 cameras:
@@ -154,7 +154,7 @@ cameras:
       enabled: true
       width: 704
       height: 480
-      fps: 2
+      fps: 1
     live:
       streams:
         main_stream: amcrest_mt2544ew_01_main
@@ -178,7 +178,7 @@ cameras:
       enabled: true
       width: 704
       height: 480
-      fps: 2
+      fps: 1
     live:
       streams:
         main_stream: amcrest_mt2544ew_02_main
@@ -202,7 +202,7 @@ cameras:
       enabled: true
       width: 704
       height: 480
-      fps: 2
+      fps: 1
     live:
       streams:
         main_stream: amcrest_2493e_03_main
@@ -264,7 +264,7 @@ cameras:
       enabled: true
       width: 352
       height: 240
-      fps: 2
+      fps: 1
     live:
       streams:
         main_stream: anpviz_ptz_06_main
