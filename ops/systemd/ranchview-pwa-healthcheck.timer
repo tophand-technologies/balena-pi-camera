@@ -1,0 +1,11 @@
+[Unit]
+Description=Run RanchView PWA health check after boot and every 30 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+Persistent=true
+RandomizedDelaySec=1min
+
+[Install]
+WantedBy=timers.target

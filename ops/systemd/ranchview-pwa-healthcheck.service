@@ -1,0 +1,11 @@
+[Unit]
+Description=Check RanchView PWA image freshness
+Wants=network-online.target docker.service ranchview-dtzay-publisher.service
+After=network-online.target docker.service ranchview-dtzay-publisher.service
+
+[Service]
+Type=oneshot
+User=travis
+WorkingDirectory=/home/travis/tophand-instances/sdco
+ExecStart=/usr/bin/python3 /home/travis/tophand-instances/sdco/tools/ranchview_pwa_healthcheck.py --source-env /home/travis/rancheye-unified/.env --dest-env /home/travis/tophand-instances/sdco/.secrets/dtzay-supabase.env --source-api http://localhost:8000/api/images --limit 20 --days-back 10 --max-source-age-hours 48 --public-head-limit 10 --min-public-bytes 5000 --status-file /home/travis/tophand-instances/sdco/research/ranchview-pwa-healthcheck.json --json
+TimeoutStartSec=5min

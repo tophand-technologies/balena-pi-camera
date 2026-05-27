@@ -1,0 +1,12 @@
+[Unit]
+Description=Publish RanchEye full-size images to dtzay Supabase for RanchView PWA
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=travis
+WorkingDirectory=/home/travis/tophand-instances/sdco
+ExecStart=/usr/bin/python3 /home/travis/tophand-instances/sdco/tools/ranchview_dtzay_publisher.py --source-env /home/travis/rancheye-unified/.env --dest-env /home/travis/tophand-instances/sdco/.secrets/dtzay-supabase.env --source-api http://localhost:8000/api/images --since-days 3 --limit 1000 --min-bytes 5000 --write --report /home/travis/tophand-instances/sdco/research/ranchview-dtzay-publisher.jsonl
+TimeoutStartSec=20min
+
