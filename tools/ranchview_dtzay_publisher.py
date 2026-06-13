@@ -68,7 +68,8 @@ def read_supabase_config(path: Path, bucket_default: str) -> SupabaseConfig:
     values = load_env_file(path)
     url = values.get("SUPABASE_URL") or values.get("NEXT_PUBLIC_SUPABASE_URL")
     key = (
-        values.get("SUPABASE_SERVICE_ROLE_KEY")
+        values.get("SUPABASE_SECRET_KEY")
+        or values.get("SUPABASE_SERVICE_ROLE_KEY")
         or values.get("SUPABASE_KEY")
         or values.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
         or values.get("SUPABASE_ANON_KEY")

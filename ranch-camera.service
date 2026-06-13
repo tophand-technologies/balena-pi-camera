@@ -11,8 +11,8 @@ ExecStart=/usr/bin/python3 /home/pi/capture_upload.py
 
 # Supabase Configuration
 Environment="SUPABASE_URL=https://dtzayqhebbrbvordmabh.supabase.co"
-Environment="SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0emF5cWhlYmJyYnZvcmRtYWJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMTg5NzE1NCwiZXhwIjoyMDQ3NDczMTU0fQ.q1r7h0aCaUbZS3FSVSIwjw_mv46pbps"
 Environment="SUPABASE_BUCKET=spypoint-images"
+EnvironmentFile=-/etc/tophand/ranch-camera.env
 
 # Camera Configuration
 Environment="DEVICE_NAME=tophand-zero-04"

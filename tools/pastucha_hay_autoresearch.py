@@ -404,7 +404,7 @@ def main() -> int:
 
     client = branding.SupabaseRest(
         branding.require_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
-        branding.require_env("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
+        branding.require_env("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
     )
     run_id = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     output_dir = args.research_dir / "candidate_outputs"

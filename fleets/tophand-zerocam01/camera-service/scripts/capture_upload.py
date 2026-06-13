@@ -28,7 +28,11 @@ DEVICE_NAME = os.environ.get('DEVICE_NAME', os.environ.get('BALENA_DEVICE_NAME_A
 
 # Supabase config
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+SUPABASE_KEY = (
+    os.environ.get('SUPABASE_SECRET_KEY')
+    or os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+    or os.environ.get('SUPABASE_KEY', '')
+)
 SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'pi-zero-images')
 
 # Paths

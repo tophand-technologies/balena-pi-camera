@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#111713">
   <title>RanchView Threadgill</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-browser-config.local.js"></script>
+  <script src="./supabase-browser-config.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -1146,10 +1148,8 @@
       return "";
     })();
 
-    const SUPABASE_URL = "https://dtzayqhebbrbvordmabh.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0emF5cWhlYmJyYnZvcmRtYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2ODA2NzIsImV4cCI6MjA4NDI1NjY3Mn0.hlDn444h_cxDf7BB3C3e68VrOfXtiljtsIwd0L1iF1w";
-    const SUPABASE_BUCKET = "spypoint-images";
-    const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { url: SUPABASE_URL, key: SUPABASE_KEY, bucket: SUPABASE_BUCKET } = window.getTophandSupabaseConfig();
+    const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY);
     const FRIGATE_PROXY = "/api/threadgill/frigate";
     const MEDIA_PROXY = "/api/threadgill/media";
     const CONTROL_PROXY = "/api/threadgill/control";

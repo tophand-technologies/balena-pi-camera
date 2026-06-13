@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RanchView Image Gallery</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./supabase-browser-config.local.js"></script>
+    <script src="./supabase-browser-config.js"></script>
     <style>
         * {
             margin: 0;
@@ -189,11 +191,9 @@
 
     <script>
         // Supabase configuration
-        const SUPABASE_URL = 'https://dtzayqhebbrbvordmabh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0emF5cWhlYmJyYnZvcmRtYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2ODA2NzIsImV4cCI6MjA4NDI1NjY3Mn0.hlDn444h_cxDf7BB3C3e68VrOfXtiljtsIwd0L1iF1w';
-        const BUCKET = 'spypoint-images';
+        const { url: SUPABASE_URL, key: SUPABASE_KEY, bucket: BUCKET } = window.getTophandSupabaseConfig();
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allImages = [];
         let devices = new Set();

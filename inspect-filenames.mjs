@@ -1,11 +1,10 @@
 // Inspect actual filenames in Supabase storage
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseRuntimeConfig } from './supabase-runtime-config.mjs';
 
-const SUPABASE_URL = 'https://dtzayqhebbrbvordmabh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0emF5cWhlYmJyYnZvcmRtYWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2ODA2NzIsImV4cCI6MjA4NDI1NjY3Mn0.hlDn444h_cxDf7BB3C3e68VrOfXtiljtsIwd0L1iF1w';
-const BUCKET = 'spypoint-images';
+const { url: SUPABASE_URL, key: SUPABASE_KEY, bucket: BUCKET } = getSupabaseRuntimeConfig();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function inspectFiles() {
     // Get a sample from QN folder

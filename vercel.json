@@ -24,9 +24,17 @@
     {
       "src": "api/threadgill/control.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/supabase/browser-config.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/supabase-browser-config.local.js",
+      "dest": "/api/supabase/browser-config.js"
+    },
     {
       "src": "/api/threadgill/control",
       "dest": "/api/threadgill/control.js"

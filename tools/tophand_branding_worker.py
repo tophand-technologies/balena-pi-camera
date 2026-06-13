@@ -80,10 +80,13 @@ def load_env_file(path: Path | None) -> None:
             os.environ[key] = value
 
 
-def require_env(name: str, fallback: str | None = None) -> str:
-    value = os.environ.get(name) or (os.environ.get(fallback) if fallback else None)
+def require_env(name: str, *fallbacks: str) -> str:
+    value = os.environ.get(name)
+    for fallback in fallbacks:
+        value = value or os.environ.get(fallback)
     if not value:
-        raise WorkerError(f"Missing required environment variable: {name}")
+        names = ", ".join((name, *fallbacks))
+        raise WorkerError(f"Missing required environment variable: one of {names}")
     return value.rstrip("/")
 
 
@@ -932,7 +935,7 @@ def main() -> int:
     args.ollama_url = normalize_ollama_url(args.ollama_url or os.environ.get("OLLAMA_URL") or os.environ.get("OLLAMA_HOST"))
 
     supabase_url = require_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL")
-    supabase_key = require_env("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY")
+    supabase_key = require_env("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY")
     client = SupabaseRest(supabase_url, supabase_key)
 
     if args.write:

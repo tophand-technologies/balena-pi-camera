@@ -20,6 +20,7 @@ Thumbs.db
 # Local env files (secrets!)
 .env
 .env.local
+supabase-browser-config.local.js
 *.key
 
 # Test images

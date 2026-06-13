@@ -271,7 +271,7 @@ def main() -> int:
     args.ollama_url = branding.normalize_ollama_url(args.ollama_url or os.environ.get("OLLAMA_URL") or os.environ.get("OLLAMA_HOST"))
     client = branding.SupabaseRest(
         branding.require_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
-        branding.require_env("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
+        branding.require_env("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
     )
 
     ranges = [parse_range(raw) for raw in (args.ranges or DEFAULT_RANGES)]

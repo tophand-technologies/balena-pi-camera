@@ -471,7 +471,7 @@ def main() -> int:
 
     client = branding.SupabaseRest(
         branding.require_env("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"),
-        branding.require_env("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
+        branding.require_env("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY"),
     )
     manifest = load_manifest(client, args.bucket, args.manifest_path)
     camera_filter = set(args.camera or [])
