@@ -6,6 +6,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "supabase-browser-config.js",
+      "use": "@vercel/static"
+    },
+    {
       "src": "threadgill.html",
       "use": "@vercel/static"
     },
