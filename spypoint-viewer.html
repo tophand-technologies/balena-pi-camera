@@ -436,6 +436,25 @@
             }[char]));
         }
 
+        function buildCaptureDate(year, month, day, hour, minute) {
+            const parts = [year, month, day, hour, minute].map(Number);
+            if (parts.some(part => Number.isNaN(part))) return null;
+
+            const [yearNumber, monthNumber, dayNumber, hourNumber, minuteNumber] = parts;
+            const date = new Date(yearNumber, monthNumber - 1, dayNumber, hourNumber, minuteNumber, 0);
+            if (Number.isNaN(date.getTime())) return null;
+            if (
+                date.getFullYear() !== yearNumber ||
+                date.getMonth() !== monthNumber - 1 ||
+                date.getDate() !== dayNumber ||
+                date.getHours() !== hourNumber ||
+                date.getMinutes() !== minuteNumber
+            ) {
+                return null;
+            }
+            return date;
+        }
+
         function configureViewMode() {
             document.title = viewMode === VIEW_MODES.tophand ? 'RanchView by TOPHAND' : 'RanchView Image Gallery';
             document.getElementById('galleryTitle').textContent = viewMode.title;
@@ -455,14 +474,14 @@
             if (match) {
                 const [, year, month, day, hour, minute] = match;
                 // Parse as local time (no 'Z' suffix) so browser interprets it correctly
-                return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+                return buildCaptureDate(year, month, day, hour, minute);
             }
 
             // Fallback: try without _S suffix
             const match2 = filename.match(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
             if (match2) {
                 const [, year, month, day, hour, minute] = match2;
-                return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+                return buildCaptureDate(year, month, day, hour, minute);
             }
 
             return null;
