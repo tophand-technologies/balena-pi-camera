@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>TopHand — Mark CR 458 Gate Zones</title>
+<style>
+  :root { --bg:#0d1411; --fg:#f4f8f2; --accent:#f26f40; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.4 -apple-system,system-ui,Helvetica,Arial,sans-serif; }
+  header { padding:10px 12px; font-weight:700; }
+  header small { display:block; font-weight:400; opacity:.7; }
+  #stage { width:100%; touch-action:none; display:block; }
+  .bar { display:flex; flex-wrap:wrap; gap:6px; padding:8px 10px; }
+  .zone { flex:1 1 auto; min-width:64px; padding:10px 6px; border:2px solid #2c3a33;
+          border-radius:10px; background:#16201b; color:var(--fg); font-weight:600; }
+  .zone.active { border-color:var(--accent); background:#23150f; }
+  .zone .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .actions { display:flex; gap:6px; padding:4px 10px 10px; }
+  .actions button { flex:1; padding:12px 6px; border:0; border-radius:10px; font-weight:700; }
+  #undo,#clear { background:#243029; color:var(--fg); }
+  #done { background:var(--accent); color:#1a0f08; }
+  #out { width:100%; height:120px; margin:0; padding:10px; background:#0a100d; color:#bfeacb;
+         border:0; font:12px/1.3 ui-monospace,Menlo,monospace; display:none; }
+  .links { display:none; gap:8px; padding:0 10px 14px; }
+  .links a { flex:1; text-align:center; padding:12px; border-radius:10px; background:#243029;
+             color:var(--fg); text-decoration:none; font-weight:700; }
+  .hint { padding:0 12px 8px; opacity:.7; font-size:13px; }
+</style>
+</head>
+<body>
+<header>Mark the CR 458 gate zones
+  <small>Tap the corners of the active zone. Tap each zone tab, mark its corners, then Done.</small>
+</header>
+<canvas id="stage"></canvas>
+<div class="hint" id="hint">Loading reference frame…</div>
+<div class="bar" id="zones"></div>
+<div class="actions">
+  <button id="undo">Undo point</button>
+  <button id="clear">Clear zone</button>
+  <button id="done">Done ▸ get JSON</button>
+</div>
+<textarea id="out" readonly spellcheck="false"></textarea>
+<div class="links" id="links">
+  <a id="copy" href="#">Copy JSON</a>
+  <a id="sms" href="#">Text to TopHand</a>
+</div>
+
+<script>
+(function () {
+  // ---- config via URL params: ?img=<frame url>&to=<sms recipient>&cam=<id> ----
+  var P = new URLSearchParams(location.search);
+  var IMG = P.get("img") || "";
+  var TO  = P.get("to")  || "";
+  var CAM = P.get("cam") || "M7-highwayGate";
+
+  // zone order matches gate_zones.json priority (first match wins)
+  var ZONES = [
+    { name:"at_gate", color:"#42d77d" },
+    { name:"gate",    color:"#f2c14e" },
+    { name:"inside",  color:"#4ea8f2" },
+    { name:"cr458",   color:"#f26f40" },
+    { name:"us77",    color:"#b06ff2" },
+  ];
+  var ORDER = ["gate","inside","at_gate","cr458","us77"]; // classify priority
+  var active = 0;
+  var polys = {}; ZONES.forEach(function (z) { polys[z.name] = []; });
+
+  var canvas = document.getElementById("stage");
+  var ctx = canvas.getContext("2d");
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  var ready = false;
+
+  function fit() {
+    if (!ready) return;
+    var w = Math.min(window.innerWidth, img.naturalWidth || window.innerWidth);
+    canvas.width = w;
+    canvas.height = Math.round(w * (img.naturalHeight / img.naturalWidth));
+    draw();
+  }
+  function draw() {
+    if (!ready) return;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ZONES.forEach(function (z) {
+      var pts = polys[z.name]; if (!pts.length) return;
+      ctx.beginPath();
+      pts.forEach(function (p, i) {
+        var x = p[0] * canvas.width, y = p[1] * canvas.height;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      if (pts.length > 2) ctx.closePath();
+      ctx.fillStyle = z.color + "33"; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = z.color; ctx.stroke();
+      pts.forEach(function (p) {
+        ctx.beginPath();
+        ctx.arc(p[0]*canvas.width, p[1]*canvas.height, 5, 0, 7);
+        ctx.fillStyle = z.color; ctx.fill();
+      });
+    });
+  }
+  function addPoint(ev) {
+    if (!ready) return;
+    var r = canvas.getBoundingClientRect();
+    var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+    var cy = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+    var nx = Math.min(1, Math.max(0, cx / r.width));
+    var ny = Math.min(1, Math.max(0, cy / r.height));
+    polys[ZONES[active].name].push([+nx.toFixed(3), +ny.toFixed(3)]);
+    draw();
+  }
+
+  // zone tabs
+  var bar = document.getElementById("zones");
+  ZONES.forEach(function (z, i) {
+    var b = document.createElement("button");
+    b.className = "zone" + (i === 0 ? " active" : "");
+    b.innerHTML = '<span class="dot" style="background:' + z.color + '"></span>' + z.name;
+    b.onclick = function () {
+      active = i;
+      [].forEach.call(bar.children, function (c, k) { c.classList.toggle("active", k === i); });
+    };
+    bar.appendChild(b);
+  });
+
+  document.getElementById("undo").onclick = function () { polys[ZONES[active].name].pop(); draw(); };
+  document.getElementById("clear").onclick = function () { polys[ZONES[active].name] = []; draw(); };
+  document.getElementById("done").onclick = function () {
+    var zones = {};
+    ZONES.forEach(function (z) { if (polys[z.name].length >= 3) zones[z.name] = polys[z.name]; });
+    var json = JSON.stringify({ camera: CAM, coords: "normalized 0-1, origin top-left", order: ORDER, zones: zones }, null, 2);
+    var out = document.getElementById("out");
+    out.value = json; out.style.display = "block";
+    document.getElementById("links").style.display = "flex";
+    document.getElementById("copy").onclick = function (e) {
+      e.preventDefault(); out.select();
+      navigator.clipboard ? navigator.clipboard.writeText(json) : document.execCommand("copy");
+      this.textContent = "Copied ✓";
+    };
+    var sms = document.getElementById("sms");
+    sms.href = "sms:" + (TO || "") + "&body=" + encodeURIComponent("GATE-ZONES " + CAM + "\n" + json);
+  };
+
+  canvas.addEventListener("pointerdown", addPoint, { passive: true });
+  window.addEventListener("resize", fit);
+  if (IMG) {
+    img.onload = function () { ready = true; document.getElementById("hint").textContent =
+      "Tip: 4 corners per zone is enough. at_gate = the driving surface on either side of the gate."; fit(); };
+    img.onerror = function () { document.getElementById("hint").textContent = "Could not load the frame (?img=...)."; };
+    img.src = IMG;
+  } else {
+    document.getElementById("hint").textContent = "No frame: open this page with ?img=<frame-url>.";
+  }
+})();
+</script>
+</body>
+</html>

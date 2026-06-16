@@ -56,6 +56,10 @@
       "dest": "/threadgill.html"
     },
     {
+      "src": "/threadgill-zone-marker/?",
+      "dest": "/threadgill-assets/gate-zone-marker.html"
+    },
+    {
       "src": "/tophand/?",
       "dest": "/spypoint-viewer.html"
     },
