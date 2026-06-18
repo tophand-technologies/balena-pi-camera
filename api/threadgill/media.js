@@ -9,6 +9,7 @@ const ALLOWED_PATHS = [
   /^\/threadgill-media\/alert-crops\/[A-Za-z0-9_-]+\/[0-9]{4}\/[0-9]{2}\/[0-9]{2}\/[A-Za-z0-9_.-]+\.jpg$/,
   /^\/threadgill-media\/thumbs\/[A-Za-z0-9_-]+\/[0-9]{4}\/[0-9]{2}\/[0-9]{2}\/[A-Za-z0-9_.-]+\.jpg$/,
   /^\/threadgill-media\/mms-thumbs\/[A-Za-z0-9_-]+\/[0-9]{4}\/[0-9]{2}\/[0-9]{2}\/[A-Za-z0-9_.-]+\.jpg$/,
+  /^\/threadgill-media\/galleries\/[A-Za-z0-9_-]+\/[0-9]{4}\/[0-9]{2}\/[0-9]{2}\/[A-Za-z0-9_.-]+\/index\.html$/,
   /^\/threadgill-media\/proxies\/[A-Za-z0-9_-]+\/[0-9]{4}\/[0-9]{2}\/[0-9]{2}\/[A-Za-z0-9_.-]+\.mp4$/,
 ];
 

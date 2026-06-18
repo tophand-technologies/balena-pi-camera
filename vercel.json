@@ -52,6 +52,10 @@
       "dest": "/api/threadgill/media.js"
     },
     {
+      "src": "/threadgill-media/(.*)",
+      "dest": "/api/threadgill/media.js?path=/threadgill-media/$1"
+    },
+    {
       "src": "/threadgill/?",
       "dest": "/threadgill.html"
     },
